@@ -1,5 +1,6 @@
 import { getPhotos } from "apiService/photos";
-import { Form, Text } from "components";
+import { Button, Form, Loader, PhotosGallery, Text } from "components";
+import { MyModal } from "components/MyModal/MyModal";
 import { useEffect, useState } from "react";
 
 export const Photos = () => {
@@ -9,6 +10,12 @@ export const Photos = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isEmpty, setIsEmpty] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  //modal
+  const [modalUrl, setModalUrl] = useState("");
+  const [modalAlt, setModalAlt] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (!query) return;
@@ -25,6 +32,7 @@ export const Photos = () => {
           return;
         }
         setImages((prevImages) => [...prevImages, ...photos]);
+        setIsVisible(page < Math.ceil(total_results / per_page));
       } catch (error) {
         setError(error);
       } finally {
@@ -36,12 +44,57 @@ export const Photos = () => {
 
   const onHandleSubmit = (value) => {
     setQuery(value);
+    setImages([]);
+    setPage(1);
+    setError(null);
+    setIsEmpty(false);
+    setIsVisible(false);
+  };
+
+  const onLoadMoreBtn = () => {
+    setPage((prevPage) => prevPage + 1);
+  };
+
+  //modal
+  const openModal = (url, alt) => {
+    setShowModal(true);
+    setModalUrl(url);
+    setModalAlt(alt);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setModalUrl("");
+    setModalAlt("");
   };
 
   return (
     <>
       <Form onSubmit={onHandleSubmit} />
-      <Text textAlign="center">Let`s begin search 🔎</Text>
+      {images.length > 0 && (
+        <PhotosGallery images={images} openModal={openModal} />
+      )}
+      {isVisible && (
+        <Button onClick={onLoadMoreBtn} disabled={isLoading}>
+          {isLoading ? "Loading..." : "Load more"}
+        </Button>
+      )}
+      <MyModal
+        modalIsOpen={showModal}
+        closeModal={closeModal}
+        modalUrl={modalUrl}
+        modalAlt={modalAlt}
+      />
+      {!images.length && !isEmpty && (
+        <Text textAlign="center">Let`s begin search 🔎</Text>
+      )}
+      {isLoading && <Loader />}
+      {error && (
+        <Text textAlign="center">❌ Something went wrong - {error}</Text>
+      )}
+      {isEmpty && (
+        <Text textAlign="center">Sorry. There are no images ... 😭</Text>
+      )}
     </>
   );
 };
